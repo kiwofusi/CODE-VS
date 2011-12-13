@@ -156,7 +156,7 @@ class Mass
 			@tower = Tower.new(tower_type)
 			@type = :tower
 			@type_char = MASS_TYPE_CHAR[@type]
-			return self
+			return "#{@x} #{@y} 0 #{@tower.type_num}"
 		else
 			return nil
 		end
@@ -169,7 +169,7 @@ class Mass
 		return false unless settable_mass.include?(@type)
 		# todo: 金の判定
 		
-		@type = :attack # 仮にタワーを設置する
+		@type = :tower # 仮にタワーを設置する
 
 		settable = true # すべての敵マスについて、防衛マスへのルートがあること
 		@map.sources.each do |source|
@@ -206,10 +206,11 @@ end
 
 class Level
 	attr_reader :life, :money, :towers_num, :enemies_num
-	attr_accessor :enemies
+	attr_accessor :enemies, :decisions
 	def initialize(input)
 		@life, @money, @towers_num, @enemies_num = input.split(/ /).map{|i| i.to_i}
 		@enemies = []
+		@decisions = []
 	end
 end
 class Enemy
@@ -271,23 +272,40 @@ maps_num.times do
 # 		map.mass(4,3).set(:attack)
 # 		map.mass(5,4).set(:attack)
 		puts "setable_masses"
-		map.settable_masses.sample.set(:attack)
-		map.settable_masses.sample.set(:attack)
-		map.settable_masses.sample.set(:attack)
-		map.settable_masses.sample.set(:attack)
-		map.settable_masses.sample.set(:attack)
-		map.settable_masses.sample.set(:attack)
-		puts map.has_route?(map.mass(1,2), map.mass(5,3))
+		map.mass(1,1).set(:attack)
+		map.mass(2,3).set(:attack)
+		map.mass(2,4).set(:attack)
+		map.mass(3,2).set(:attack)
+		map.mass(3,5).set(:attack)
+		map.mass(4,3).set(:attack)
+		map.mass(4,4).set(:attack)
+		map.mass(4,5).set(:attack)
+		map.mass(5,1).set(:attack)
+		puts map.mass(2,1).settable?
+		
 		map.show
 
 	end
 	levels_num.times do
 		level = Level.new(rl)
+		level.towers_num.times do
+			rl # 何もしない
+		end
 		level.enemies_num.times do
 			level.enemies << Enemy.new(rl) # 敵情報
-			# タワーを配置する
 		end
-		puts "0" if rl == "END" # 結果を出力する
+		# タワーを配置する
+		money = level.money
+		while map.settable_masses.size > 0 && money >= 20
+			sample = map.settable_masses.sample
+			level.decisions << sample.set(:attack)
+			money -= 15
+		end
+		rl #if rl == "END" # 結果を出力する
+			level.decisions.compact!
+			puts level.decisions.size
+			level.decisions.each {|d| puts d }
+		#end
 	end
 end
 
@@ -306,6 +324,55 @@ map.mass(x, y).remove()
 =end
 
 =begin 出力
+判断の数 T
+x, y, 強化する回数 A_t, 種類 C_i
+
+▼出力
+6
+4 4 0 1
+2 5 0 1
+2 3 0 1
+5 5 0 1
+3 3 0 1
+2 4 0 1
+0
+0
+
+
+▼入力
+40
+7 7
+1111111
+1000001
+1s00001
+1s000g1
+1s00001
+1000001
+1111111
+25
+END
+10 100 0 1
+1 4 12 44 40
+END
+10 14 6 3
+4 4 0 、1
+1 4 1 54 116
+1 4 10 82 68
+1 3 16 77 82
+END
+10 31 6 4
+4 4 0 1
+2 5 0 1
+2 3 0 1
+5 5 0 1
+3 3 0 1
+2 4 0 1
+1 2 3 96 31
+1 4 21 41 115
+1 2 6 70 118
+1 3 16 90 104
+END
+
 
 
 =end
