@@ -32,7 +32,7 @@ class Map
 		return settable_masses
 	end
 	def settable_mass_rand()
-		max = 1000
+		max = 100
 		i = 0
 		while i < max
 			sample = @info.sample.sample
@@ -266,7 +266,9 @@ unless Array.new.methods.include?("sample") # Ruby1.8対策
 end
 
 maps_num = rl.to_i # S
+map_idx = 0
 maps_num.times do
+	map_idx += 1
 	map, levels_num = read_map()
 	if $DEBUG
 
@@ -309,6 +311,7 @@ maps_num.times do
 			level.enemies << Enemy.new(rl) # 敵情報
 		end
 		# タワーを配置する
+		if map_idx < 10
 		money = level.money
 		sample = 1
 		while sample && money >= 20
@@ -317,6 +320,7 @@ maps_num.times do
 				level.decisions << sample.set(:attack)
 				money -= 15
 			end
+		end
 		end
 		rl #if rl == "END" # 結果を出力する
 			level.decisions.compact!
