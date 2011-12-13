@@ -37,6 +37,9 @@ END
 1 4 17 109 54
 END
 
+●実行
+cd D:\ruby\codevs
+ruby sample.rb
 
 ●仕様
 

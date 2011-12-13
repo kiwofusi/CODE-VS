@@ -17,7 +17,14 @@ class Map
 				Mass.new(mass_type)
 			end
 		end
-		
+	end
+	def show()
+		@info.each do |row|
+			row.each do |mass|
+				print mass.type_char
+			end
+			puts ""
+		end
 	end
 	def mass(x, y)
 		@info[x][y]
@@ -59,6 +66,7 @@ class Mass
 	end
 	def set(tower)
 		@tower = tower
+		@type_char = MASS_TYPE_CHAR[@type]
 	end
 	def remove()
 	end
@@ -122,6 +130,10 @@ end
 maps_num = rl.to_i # S
 maps_num.times do
 	map, levels_num = read_map()
+	if $DEBUG
+		map.show
+		puts map.mass(1,2).type
+	end
 	levels_num.times do
 		level = Level.new(rl)
 		level.enemies_num.times do
