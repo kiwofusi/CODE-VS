@@ -78,9 +78,26 @@ class Map
 		passed_path[mass1.y][mass1.x] = 1 # 同じ場所には戻れない
 		movable = false
 		if mass1 == mass2
-			"goal!!"
+			puts ("  " * depth) + "goal!!"
+			if $DEBUG
+				passed_path.each do |row|
+					row.each do |mass|
+						print mass
+					end
+					puts ""
+				end
+			end
 			return true
 		else
+			if $DEBUG
+				passed_path.each do |row|
+					row.each do |mass|
+						print mass
+					end
+					puts ""
+				end
+			end
+			
 			move_directions = [:up, :down, :left, :right]
 			move_directions.each do |direction|
 				next_mass = mass1.send(direction)
@@ -90,6 +107,7 @@ class Map
 					puts ("  " * (depth+1)) + "->yes!!" if $DEBUG
 					movable = true if move_foward(next_mass, mass2, passed_path, depth+=1)
 				end
+				
 				return movable if movable
 			end
 			return movable
@@ -207,8 +225,10 @@ maps_num.times do
 		mass = map.mass(1,2)
 		puts mass == mass.up.right.down.send(:left)
 		map.sources.each {|goal| puts goal.to_s }
-		puts "from #{map.mass(1,2).to_s} to #{map.mass(1,3).to_s}"
-		puts map.has_route?(map.mass(1,2), map.mass(1,3))
+		from = map.mass(1,2)
+		to = map.mass(2,5)
+		puts "from #{from.to_s} to #{to.to_s}"
+		puts map.has_route?(from, to)
 	end
 	levels_num.times do
 		level = Level.new(rl)
