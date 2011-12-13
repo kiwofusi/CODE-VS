@@ -6,6 +6,7 @@ COST_OF_SETTING = {:rapid=>10, :attack=>15, :freeze=>20} # 設置費用
 
 # クラス
 
+
 class Map
 	attr_reader :width, :height, :info
 	def initialize(width, height, info)
@@ -16,13 +17,26 @@ class Map
 	def mass(x, y)
 		@info[x][y]
 	end
-	def enemies() # 敵出現マス一覧
+	def setable?(mass1, mass2) # タワーを設置可能か
+		setable = true # すべての敵マスについて、防衛マスへのルートがあること
+		sources.each do |source|
+			has_route = false
+			goals.each do |goal| # 防衛マスへのルートが少なくともひとつあること
+				has_route = true if has_route?(sources, goal)
+			end
+			setable = false unless has_route = true
+		end
+		return setable
+	end
+	def sources() # 敵出現マス一覧
 		# return [x1, y2], [x2, y2] ...
 	end
 	def goals() # 防衛マス一覧
 		# return [x1, y2], [x2, y2] ...
+	end	
+	def has_route?(mass1, mass2) # 二点が通行可能か
 	end
-	def distance(x1, y1, x2, y2, type="step") # 二点間の距離
+	def distance(mass1, mass2, type="step") # 二点間の距離
 		if type == "step" # ユニットの移動距離
 		
 		else # ユークリッド距離
