@@ -40,19 +40,19 @@ class Map
 			goals.each do |goal| # 防衛マスへのルートが少なくともひとつあること
 				has_route = true if has_route?(sources, goal)
 			end
-			setable = false unless has_route = true
+			setable = false unless has_route
 		end
 		return setable
 	end
 	def sources() # 敵出現マス一覧
-		# return [x1, y2], [x2, y2] ...
+		search(:source)
 	end
 	def goals() # 防衛マス一覧
-		# return [x1, y2], [x2, y2] ...
+		search(:goal)
 	end	
 	def has_route?(mass1, mass2) # 二点が通行可能か
-		has_route = false # 上下左右いずれかの :path を通って mass2 に到達できること
-		
+		# 上下左右いずれかの :path を通って mass2 に到達できること
+		return move_foward(mass1, mass2)
 	end
 	def distance(mass1, mass2, type="step") # 二点間の距離
 		if type == "step" # ユニットの移動距離
@@ -61,10 +61,64 @@ class Map
 		
 		end
 	end
+
+	private
+
+	def search(type) # マスを探す
+		result = []
+		@info.each do |row| # find_all とかうまく使えないか？
+			row.each do |mass|
+				result << mass if mass.type == type
+			end
+		end
+		return result
+	end
+	def move_foward(mass1, mass2, passed_path=nil, depth=0) # mass1 から mass2 への移動を試みる
+		passed_path ||= define_passed_path(mass1) # 通行マップ：通ってはいけないマスを1、通れるマスを0とする
+		passed_path[mass1.y][mass1.x] = 1 # 同じ場所には戻れない
+		movable = false
+		if mass1 == mass2
+			"goal!!"
+			return true
+		else
+			move_directions = [:up, :down, :left, :right]
+			move_directions.each do |direction|
+				next_mass = mass1.send(direction)
+				
+				puts ("  " * depth) + "#{next_mass.to_s} is movable?" if $DEBUG
+				if passed_path[next_mass.y][next_mass.x] == 0
+					puts ("  " * (depth+1)) + "->yes!!" if $DEBUG
+					movable = true if move_foward(next_mass, mass2, passed_path, depth+=1)
+				end
+				return movable if movable
+			end
+			return movable
+		end
+	end
+	def define_passed_path(current_mass) # 通行マップを定義する
+		passed_path = Array.new(@height){ Array.new(@width){0} }
+		
+		# Array.new(7){ Array.new(7){0} }
+		# Array#newには注意 http://doc.okkez.net/static/192/class/Array.html
+		unpassable = [:block, :tower] # 通行不可能
+		y = -1
+		passed_path.each do |row|
+			y += 1
+			x = -1
+			row.each do |mass|
+				x += 1
+				passed_path[y][x] = 1 if unpassable.include?(mass(x, y).type)
+			end
+		end
+
+	end
 end
 
+
+
 class Mass
-	attr_reader :type, :type_char, :tower, :x, :y, :map # 所属マップ
+	attr_reader :type, :type_char, :tower, :x, :y
+	attr :map # 所属マップ
 	def initialize(x, y, mass_type_char, map)
 		@x, @y = x, y
 		@type_char = mass_type_char # 自分でタワー配置を出力したいとき用（ないか
@@ -72,20 +126,17 @@ class Mass
 		@tower = nil
 		@map = map
 	end
-	def up
-		@map.mass(@x, @y-1)
-	end
-	def down
-		@map.mass(@x, @y+1)
-	end
-	def right
-		@map.mass(@x+1, @y)
-	end
-	def left
-		@map.mass(@x-1, @y)
-	end
-	def set(tower)
-		@tower = tower
+	
+	def up; @map.mass(@x, @y-1); end
+	def down; @map.mass(@x, @y+1); end
+	def right; @map.mass(@x+1, @y); end
+	def left; @map.mass(@x-1, @y); end
+
+	def to_s; "#{@type}(#{x}, #{y})"; end
+	
+	def set(tower_type)
+		@tower = Tower.new(tower_type)
+		@type = :tower
 		@type_char = MASS_TYPE_CHAR[@type]
 	end
 	def remove()
@@ -151,9 +202,13 @@ maps_num = rl.to_i # S
 maps_num.times do
 	map, levels_num = read_map()
 	if $DEBUG
+
 		map.show
 		mass = map.mass(1,2)
-		puts mass == mass.up.right.down.left
+		puts mass == mass.up.right.down.send(:left)
+		map.sources.each {|goal| puts goal.to_s }
+		puts "from #{map.mass(1,2).to_s} to #{map.mass(1,3).to_s}"
+		puts map.has_route?(map.mass(1,2), map.mass(1,3))
 	end
 	levels_num.times do
 		level = Level.new(rl)
@@ -169,8 +224,7 @@ end
 =begin サンプル
 
 # タワーを配置する
-tower = Tower.new(:rapid)
-map.mass(x, y).set(tower)
+map.mass(x, y).set(:attack)
 
 # タワーを強化する
 map.mass(x, y).levelup()
