@@ -3,15 +3,20 @@
 TOWER_TYPE = {0=>:rapid, 1=>:attack, 2=>:freeze} # 入力用
 TOWER_TYPE_NUM = TOWER_TYPE.invert # 出力用
 COST_OF_SETTING = {:rapid=>10, :attack=>15, :freeze=>20} # 設置費用
+MASS_TYPE = {'0'=>:path, '1'=>:block, 's'=>:source, 'g'=>:gloal, 't'=>:tower}
+MASS_TYPE_CHAR = MASS_TYPE.invert
 
 # クラス
-
 
 class Map
 	attr_reader :width, :height, :info
 	def initialize(width, height, info)
 		@width, @height = width, height
-		@info = info
+		@info = info.map do |row|
+			row.map do |mass_type|
+				Mass.new(mass_type)
+			end
+		end
 		
 	end
 	def mass(x, y)
@@ -46,8 +51,11 @@ class Map
 end
 
 class Mass
-	attr_reader :type, :tower
-	def initialize()
+	attr_reader :type, :type_char, :tower
+	def initialize(mass_type_char)
+		@type_char = mass_type_char # 自分でタワー配置を出力したいとき用（ないか
+		@type = MASS_TYPE[mass_type_char]
+		@tower = nil
 	end
 	def set(tower)
 		@tower = tower
@@ -99,7 +107,6 @@ end
 def rl() # read line
 	STDIN.gets.chop # cf. http://vipprog.net/wiki/%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%9F%E3%83%B3%E3%82%B0%E8%A8%80%E8%AA%9E/Ruby/Ruby%E3%81%9D%E3%81%9E%E3%82%8D%E6%AD%A9%E3%81%8D.html
 end
-
 def read_map() # マップを読み込む
 	width, height = rl.split(/ /).map{|i| i.to_i}
 	map_info = [] # マップ情報の二次元配列
