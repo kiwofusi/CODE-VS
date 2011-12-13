@@ -31,6 +31,20 @@ class Map
 		end
 		return settable_masses
 	end
+	def settable_mass_rand()
+		max = 1000
+		i = 0
+		while i < max
+			sample = @info.sample.sample
+			if sample.type == :path
+				if sample.settable?
+					return sample
+				end
+			end
+			i += 1
+		end
+		return nil
+	end
 	def show()
 		@info.each do |row|
 			row.each do |mass|
@@ -296,10 +310,13 @@ maps_num.times do
 		end
 		# タワーを配置する
 		money = level.money
-		while map.settable_masses.size > 0 && money >= 20
-			sample = map.settable_masses.sample
-			level.decisions << sample.set(:attack)
-			money -= 15
+		sample = 1
+		while sample && money >= 20
+			sample = map.settable_mass_rand
+			if sample
+				level.decisions << sample.set(:attack)
+				money -= 15
+			end
 		end
 		rl #if rl == "END" # 結果を出力する
 			level.decisions.compact!
