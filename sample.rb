@@ -59,14 +59,17 @@ class Tower
 end
 
 class Level
-	attr_reader :life, :money, :towers_num, :enemies_num, :enemies
+	attr_reader :life, :money, :towers_num, :enemies_num
+	attr_accessor :enemies
 	def initialize(input)
 		@life, @money, @towers_num, @enemies_num = input.split(/ /).map{|i| i.to_i}
+		@enemies = []
 	end
 end
 class Enemy
 	attr_reader :x, :y, :time, :life, :speed
-	def initialize()
+	def initialize(input)
+		@x, @y, @time, @life, @speed = input.split(/ /).map{|i| i.to_i}
 	end
 end
 
@@ -101,7 +104,7 @@ maps_num.times do
 	levels_num.times do
 		level = Level.new(rl)
 		level.enemies_num.times do
-			enemy_input = rl # 敵情報
+			level.enemies << Enemy.new(rl) # 敵情報
 			# タワーを配置する
 		end
 		puts "0" if rl == "END" # 結果を出力する
