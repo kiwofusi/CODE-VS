@@ -76,10 +76,13 @@ class Mass
 		@map.mass(@x, @y-1)
 	end
 	def down
+		@map.mass(@x, @y+1)
 	end
 	def right
+		@map.mass(@x+1, @y)
 	end
 	def left
+		@map.mass(@x-1, @y)
 	end
 	def set(tower)
 		@tower = tower
@@ -150,7 +153,7 @@ maps_num.times do
 	if $DEBUG
 		map.show
 		mass = map.mass(1,2)
-		puts mass.up.up.type
+		puts mass == mass.up.right.down.left
 	end
 	levels_num.times do
 		level = Level.new(rl)
