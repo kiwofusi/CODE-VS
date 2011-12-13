@@ -3,6 +3,10 @@
 ランキングクローラを書く
 http://codevs.jp/index.php/ext/ranking?from=&to=100&type=total
 
+●デバッグ
+Ruby (デバッグ方法) - あさあさの公開メモ
+http://asaasa.tk/wiki/?Ruby%2FDebug
+
 ●サンプル実行
 ▼入力
 40

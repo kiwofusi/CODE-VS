@@ -3,7 +3,7 @@
 TOWER_TYPE = {0=>:rapid, 1=>:attack, 2=>:freeze} # 入力用
 TOWER_TYPE_NUM = TOWER_TYPE.invert # 出力用
 COST_OF_SETTING = {:rapid=>10, :attack=>15, :freeze=>20} # 設置費用
-MASS_TYPE = {'0'=>:path, '1'=>:block, 's'=>:source, 'g'=>:gloal, 't'=>:tower}
+MASS_TYPE = {'0'=>:path, '1'=>:block, 's'=>:source, 'g'=>:goal, 't'=>:tower}
 MASS_TYPE_CHAR = MASS_TYPE.invert
 
 # クラス
@@ -22,6 +22,15 @@ class Map
 			end
 		end
 	end
+	def settable_masses()
+		settable_masses = []
+		@info.each do |row|
+			row.each do |mass|
+				settable_masses << mass if mass.settable?
+			end
+		end
+		return settable_masses
+	end
 	def show()
 		@info.each do |row|
 			row.each do |mass|
@@ -32,17 +41,6 @@ class Map
 	end
 	def mass(x, y)
 		@info[y][x] # 座標の順番に注意！
-	end
-	def setable?(mass1, mass2) # タワーを設置可能か
-		setable = true # すべての敵マスについて、防衛マスへのルートがあること
-		sources.each do |source|
-			has_route = false
-			goals.each do |goal| # 防衛マスへのルートが少なくともひとつあること
-				has_route = true if has_route?(sources, goal)
-			end
-			setable = false unless has_route
-		end
-		return setable
 	end
 	def sources() # 敵出現マス一覧
 		search(:source)
@@ -75,36 +73,37 @@ class Map
 	end
 	def move_foward(mass1, mass2, passed_path=nil, depth=0) # mass1 から mass2 への移動を試みる
 		passed_path ||= define_passed_path(mass1) # 通行マップ：通ってはいけないマスを1、通れるマスを0とする
+		return false if passed_path[mass1.y][mass1.x] == 1 # 壁に埋まってるとき
 		passed_path[mass1.y][mass1.x] = 1 # 同じ場所には戻れない
 		movable = false
 		if mass1 == mass2
-			puts ("  " * depth) + "goal!!"
-			if $DEBUG
-				passed_path.each do |row|
-					row.each do |mass|
-						print mass
-					end
-					puts ""
-				end
-			end
+			#puts ("  " * depth) + "goal!!"
+# 			if $DEBUG
+# 				passed_path.each do |row|
+# 					row.each do |mass|
+# 						print mass
+# 					end
+# 					puts ""
+# 				end
+# 			end
 			return true
 		else
-			if $DEBUG
-				passed_path.each do |row|
-					row.each do |mass|
-						print mass
-					end
-					puts ""
-				end
-			end
+# 			if $DEBUG
+# 				passed_path.each do |row|
+# 					row.each do |mass|
+# 						print mass
+# 					end
+# 					puts ""
+# 				end
+# 			end
 			
 			move_directions = [:up, :down, :left, :right]
 			move_directions.each do |direction|
 				next_mass = mass1.send(direction)
 				
-				puts ("  " * depth) + "#{next_mass.to_s} is movable?" if $DEBUG
+				#puts ("  " * depth) + "#{next_mass.to_s} is movable?" if $DEBUG
 				if passed_path[next_mass.y][next_mass.x] == 0
-					puts ("  " * (depth+1)) + "->yes!!" if $DEBUG
+					#puts ("  " * (depth+1)) + "->yes!!" if $DEBUG
 					movable = true if move_foward(next_mass, mass2, passed_path, depth+=1)
 				end
 				
@@ -115,7 +114,6 @@ class Map
 	end
 	def define_passed_path(current_mass) # 通行マップを定義する
 		passed_path = Array.new(@height){ Array.new(@width){0} }
-		
 		# Array.new(7){ Array.new(7){0} }
 		# Array#newには注意 http://doc.okkez.net/static/192/class/Array.html
 		unpassable = [:block, :tower] # 通行不可能
@@ -135,7 +133,8 @@ end
 
 
 class Mass
-	attr_reader :type, :type_char, :tower, :x, :y
+	attr_reader :type_char, :tower, :x, :y
+	attr_accessor :type
 	attr :map # 所属マップ
 	def initialize(x, y, mass_type_char, map)
 		@x, @y = x, y
@@ -153,9 +152,37 @@ class Mass
 	def to_s; "#{@type}(#{x}, #{y})"; end
 	
 	def set(tower_type)
-		@tower = Tower.new(tower_type)
-		@type = :tower
-		@type_char = MASS_TYPE_CHAR[@type]
+		if settable?
+			@tower = Tower.new(tower_type)
+			@type = :tower
+			@type_char = MASS_TYPE_CHAR[@type]
+			return self
+		else
+			return nil
+		end
+	end
+	def settable?() # タワーを設置可能か
+		settable = true
+
+		default_type = @type
+		settable_mass = [:path]
+		return false unless settable_mass.include?(@type)
+		# todo: 金の判定
+		
+		@type = :attack # 仮にタワーを設置する
+
+		settable = true # すべての敵マスについて、防衛マスへのルートがあること
+		@map.sources.each do |source|
+			has_route = false
+			@map.goals.each do |goal| # 防衛マスへのルートが少なくともひとつあること
+				has_route = true if @map.has_route?(source, goal)
+			end
+			settable = false unless has_route
+		end
+		
+		@type = default_type # 元に戻す todo: remove にする？
+
+		return settable
 	end
 	def remove()
 	end
@@ -170,7 +197,7 @@ class Tower
 		@type = type
 		@type_num = TOWER_TYPE_NUM[@type]
 		@level = 1
-		@cost_of_levelup = COST_OF_SETTING[@type] * (level+1)
+		@cost_of_levelup = COST_OF_SETTING[@type] * (@level+1)
 	end
 	def levelup()
 		@level += 1
@@ -215,6 +242,13 @@ def read_map() # マップを読み込む
 	rl # "END"
 	return map, levels_num
 end
+unless Array.new.methods.include?("sample") # Ruby1.8対策
+	class Array
+		def sample
+			choice()
+		end
+	end
+end
 
 maps_num = rl.to_i # S
 maps_num.times do
@@ -224,11 +258,28 @@ maps_num.times do
 		map.show
 		mass = map.mass(1,2)
 		puts mass == mass.up.right.down.send(:left)
-		map.sources.each {|goal| puts goal.to_s }
+		map.goals.each {|goal| puts goal.to_s }
 		from = map.mass(1,2)
 		to = map.mass(2,5)
-		puts "from #{from.to_s} to #{to.to_s}"
-		puts map.has_route?(from, to)
+		#puts "from #{from.to_s} to #{to.to_s}", map.has_route?(from, to)
+		#puts "settable?"
+		#puts map.mass(1,1).settable?
+
+		#puts "has route?"
+# 		map.mass(5,2).set(:attack)
+# 		map.mass(4,3).set(:attack)
+# 		map.mass(4,3).set(:attack)
+# 		map.mass(5,4).set(:attack)
+		puts "setable_masses"
+		map.settable_masses.sample.set(:attack)
+		map.settable_masses.sample.set(:attack)
+		map.settable_masses.sample.set(:attack)
+		map.settable_masses.sample.set(:attack)
+		map.settable_masses.sample.set(:attack)
+		map.settable_masses.sample.set(:attack)
+		puts map.has_route?(map.mass(1,2), map.mass(5,3))
+		map.show
+
 	end
 	levels_num.times do
 		level = Level.new(rl)
