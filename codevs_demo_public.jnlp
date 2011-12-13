@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jnlp 
+  spec="1.0+" 
+  codebase="http://codevs.jp/" 
+  href="codevs_demo_public.jnlp">
+
+  <information> 
+    <title>CodeVS Client</title> 
+    <vendor>CodeVS</vendor> 
+    <homepage href="http://codevs.jp/"/>
+    <description>CodeVS Client</description>
+  </information> 
+
+  <security>
+  </security>
+
+  <resources> 
+    <j2se version="1.4+" max-heap-size="256m"/> 
+    <jar href="http://codevs.jp/codevs_demo.jar"/> 
+  </resources> 
+
+  <application-desc main-class="_sample_entry._DemoPlayEntryPoint">
+  </application-desc> 
+
+</jnlp>
