@@ -12,11 +12,12 @@ class Map
 	attr_reader :width, :height, :info
 	def initialize(width, height, info)
 		@width, @height = width, height
-		x = y = -1
+		y = -1
 		@info = info.map do |row| # Mass オブジェクトを埋め込む
-			x += 1
+			y += 1
+			x = -1 # 注意！
 			row.map do |mass_type|
-				y += 1
+				x += 1
 				mass = Mass.new(x, y, mass_type, self)
 			end
 		end
@@ -30,7 +31,7 @@ class Map
 		end
 	end
 	def mass(x, y)
-		@info[x][y]
+		@info[y][x] # 座標の順番に注意！
 	end
 	def setable?(mass1, mass2) # タワーを設置可能か
 		setable = true # すべての敵マスについて、防衛マスへのルートがあること
@@ -63,8 +64,7 @@ class Map
 end
 
 class Mass
-	attr_reader :type, :type_char, :tower, :x, :y
-	attr_accessor :map # 所属マップ
+	attr_reader :type, :type_char, :tower, :x, :y, :map # 所属マップ
 	def initialize(x, y, mass_type_char, map)
 		@x, @y = x, y
 		@type_char = mass_type_char # 自分でタワー配置を出力したいとき用（ないか
@@ -149,9 +149,8 @@ maps_num.times do
 	map, levels_num = read_map()
 	if $DEBUG
 		map.show
-		mass = map.mass(1,2).type
-		puts mass.type
-		#p mass.up
+		mass = map.mass(1,2)
+		puts mass.up.up.type
 	end
 	levels_num.times do
 		level = Level.new(rl)
