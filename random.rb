@@ -17,7 +17,7 @@ class Map
 			x += 1
 			row.map do |mass_type|
 				y += 1
-				mass = Mass.new(x, y, mass_type)
+				mass = Mass.new(x, y, mass_type, self)
 			end
 		end
 	end
@@ -64,13 +64,16 @@ end
 
 class Mass
 	attr_reader :type, :type_char, :tower, :x, :y
-	def initialize(x, y, mass_type_char)
+	attr_accessor :map # 所属マップ
+	def initialize(x, y, mass_type_char, map)
 		@x, @y = x, y
 		@type_char = mass_type_char # 自分でタワー配置を出力したいとき用（ないか
-		@type = MASS_TYPE[mass_type_char]
+		@type = MASS_TYPE[@type_char]
 		@tower = nil
+		@map = map
 	end
 	def up
+		@map.mass(@x, @y-1)
 	end
 	def down
 	end
@@ -146,7 +149,9 @@ maps_num.times do
 	map, levels_num = read_map()
 	if $DEBUG
 		map.show
-		puts map.mass(1,2).type
+		mass = map.mass(1,2).type
+		puts mass.type
+		#p mass.up
 	end
 	levels_num.times do
 		level = Level.new(rl)
