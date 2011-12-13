@@ -12,9 +12,12 @@ class Map
 	attr_reader :width, :height, :info
 	def initialize(width, height, info)
 		@width, @height = width, height
-		@info = info.map do |row|
+		x = y = -1
+		@info = info.map do |row| # Mass オブジェクトを埋め込む
+			x += 1
 			row.map do |mass_type|
-				Mass.new(mass_type)
+				y += 1
+				mass = Mass.new(x, y, mass_type)
 			end
 		end
 	end
@@ -47,6 +50,8 @@ class Map
 		# return [x1, y2], [x2, y2] ...
 	end	
 	def has_route?(mass1, mass2) # 二点が通行可能か
+		has_route = false # 上下左右いずれかの :path を通って mass2 に到達できること
+		
 	end
 	def distance(mass1, mass2, type="step") # 二点間の距離
 		if type == "step" # ユニットの移動距離
@@ -58,11 +63,20 @@ class Map
 end
 
 class Mass
-	attr_reader :type, :type_char, :tower
-	def initialize(mass_type_char)
+	attr_reader :type, :type_char, :tower, :x, :y
+	def initialize(x, y, mass_type_char)
+		@x, @y = x, y
 		@type_char = mass_type_char # 自分でタワー配置を出力したいとき用（ないか
 		@type = MASS_TYPE[mass_type_char]
 		@tower = nil
+	end
+	def up
+	end
+	def down
+	end
+	def right
+	end
+	def left
 	end
 	def set(tower)
 		@tower = tower
