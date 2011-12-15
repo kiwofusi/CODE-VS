@@ -48,48 +48,53 @@ describe Map, "" do
 	before do
 		@map = Map.new(8, 8, [Array.new(8){0}], 1, 1)
 	end
-	
-	it "Mass(3,3) ‚©‚ç Mass(3,3) ‚Ì #direction ‚Í :right ‚Å‚ ‚é" do
+
+	it "Mass(3,3) ‚©‚ç Mass(4,5) ‚Ì #directions ‚Í [:up, :right, :left, :down] ‚Å‚ ‚é" do
+		mass1 = Mass.new(3, 3, :path, @map)
+		mass2 = Mass.new(4, 5, :path, @map)
+		@map.directions(mass1, mass2).should == [:up, :right, :left, :down]
+	end
+	it "Mass(3,3) ‚©‚ç Mass(2,1) ‚Ì #directions ‚Í [:down, :left, :right, :up] ‚Å‚ ‚é" do
+		mass1 = Mass.new(3, 3, :path, @map)
+		mass2 = Mass.new(2, 1, :path, @map)
+		@map.directions(mass1, mass2).should == [:down, :left, :right, :up]
+	end
+	it "Mass(3,3) ‚©‚ç Mass(5,4) ‚Ì #directions ‚Í [:right, :up, :down, :left] ‚Å‚ ‚é" do
+		mass1 = Mass.new(3, 3, :path, @map)
+		mass2 = Mass.new(5, 4, :path, @map)
+		@map.directions(mass1, mass2).should == [:right, :up, :down, :left]
+	end
+	it "Mass(3,3) ‚©‚ç Mass(1,2) ‚Ì #directions ‚Í [:left, :down, :up, :right] ‚Å‚ ‚é" do
+		mass1 = Mass.new(3, 3, :path, @map)
+		mass2 = Mass.new(1, 2, :path, @map)
+		@map.directions(mass1, mass2).should == [:left, :down, :up, :right]
+	end
+
+	it "#direction(mass1, mass2) ‚Í mass1 ‚©‚ç mass2 ‚Ö‚Ì•ûŒü‚ðŽ¦‚·" do
 		mass1 = Mass.new(3, 3, :path, @map)
 		mass2 = Mass.new(3, 3, :path, @map)
 		@map.direction(mass1, mass2).should == :right
-	end
-	it "Mass(3,3) ‚©‚ç Mass(3,4) ‚Ì #direction ‚Í :up ‚Å‚ ‚é" do
 		mass1 = Mass.new(3, 3, :path, @map)
 		mass2 = Mass.new(3, 4, :path, @map)
 		@map.direction(mass1, mass2).should == :up
-	end
-	it "Mass(3,3) ‚©‚ç Mass(4,5) ‚Ì #direction ‚Í :up ‚Å‚ ‚é" do
 		mass1 = Mass.new(3, 3, :path, @map)
 		mass2 = Mass.new(4, 5, :path, @map)
 		@map.direction(mass1, mass2).should == :up
-	end
-	it "Mass(3,3) ‚©‚ç Mass(3,2) ‚Ì #direction ‚Í :down ‚Å‚ ‚é" do
 		mass1 = Mass.new(3, 3, :path, @map)
 		mass2 = Mass.new(3, 2, :path, @map)
 		@map.direction(mass1, mass2).should == :down
-	end
-	it "Mass(3,3) ‚©‚ç Mass(2,1) ‚Ì #direction ‚Í :down ‚Å‚ ‚é" do
 		mass1 = Mass.new(3, 3, :path, @map)
 		mass2 = Mass.new(2, 1, :path, @map)
 		@map.direction(mass1, mass2).should == :down
-	end
-	it "Mass(3,3) ‚©‚ç Mass(4,3) ‚Ì #direction ‚Í :right ‚Å‚ ‚é" do
 		mass1 = Mass.new(3, 3, :path, @map)
 		mass2 = Mass.new(4, 3, :path, @map)
 		@map.direction(mass1, mass2).should == :right
-	end
-	it "Mass(3,3) ‚©‚ç Mass(5,4) ‚Ì #direction ‚Í :right ‚Å‚ ‚é" do
 		mass1 = Mass.new(3, 3, :path, @map)
 		mass2 = Mass.new(5, 4, :path, @map)
 		@map.direction(mass1, mass2).should == :right
-	end
-	it "Mass(3,3) ‚©‚ç Mass(2,3) ‚Ì #direction ‚Í :left ‚Å‚ ‚é" do
 		mass1 = Mass.new(3, 3, :path, @map)
 		mass2 = Mass.new(2, 3, :path, @map)
 		@map.direction(mass1, mass2).should == :left
-	end
-	it "Mass(3,3) ‚©‚ç Mass(1,2) ‚Ì #direction ‚Í :left ‚Å‚ ‚é" do
 		mass1 = Mass.new(3, 3, :path, @map)
 		mass2 = Mass.new(1, 2, :path, @map)
 		@map.direction(mass1, mass2).should == :left

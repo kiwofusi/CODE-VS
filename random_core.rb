@@ -95,7 +95,7 @@ class Map
 	end
 	def distance_step(mass1, mass2) # 二点間の敵の通行距離
 	end
-	def direction(mass1, mass2) # mass1 から mass2 への方向
+	def direction(mass1, mass2)
 		x_diff = mass2.x - mass1.x # 正なら右
 		y_diff = mass2.y - mass1.y # 正なら上
 		if (x_diff.abs - y_diff.abs) >= 0 # 左右を優先
@@ -104,6 +104,39 @@ class Map
 		else # 上下を優先
 			return :up if y_diff >= 0
 			return :down
+		end
+	end
+	def directions(mass1, mass2) # mass1 から mass2 への方向リスト（近い順）
+		x_diff = mass2.x - mass1.x # 正なら右
+		y_diff = mass2.y - mass1.y # 正なら上
+		if (x_diff.abs - y_diff.abs) >= 0 # 左右を優先
+			if x_diff >= 0
+				if y_diff >= 0
+					return [:right, :up, :down, :left]
+				else
+					return [:right, :down, :up, :left]
+				end
+			else
+				if y_diff >= 0
+					return [:left, :up, :down, :right]
+				else
+					return [:left, :down, :up, :right]
+				end
+			end
+		else # 上下を優先
+			if y_diff >= 0
+				if x_diff >= 0
+					return [:up, :right, :left, :down]
+				else
+					return [:up, :left, :right, :down]
+				end
+			else
+				if x_diff >= 0
+					return [:down, :right, :left, :up]
+				else
+					return [:down, :left, :right, :up]
+				end
+			end
 		end
 	end
 
@@ -124,36 +157,14 @@ class Map
 		passed_path[mass1.y][mass1.x] = 1 # 同じ場所には戻れない
 		movable = false
 		if mass1 == mass2
-			#puts ("  " * depth) + "goal!!"
-# 			if $DEBUG
-# 				passed_path.each do |row|
-# 					row.each do |mass|
-# 						print mass
-# 					end
-# 					puts ""
-# 				end
-# 			end
 			return true
 		else
-# 			if $DEBUG
-# 				passed_path.each do |row|
-# 					row.each do |mass|
-# 						print mass
-# 					end
-# 					puts ""
-# 				end
-# 			end
-			
 			move_directions = [:up, :down, :left, :right]
 			move_directions.each do |direction|
 				next_mass = mass1.send(direction)
-				
-				#puts ("  " * depth) + "#{next_mass.to_s} is movable?" if $DEBUG
 				if passed_path[next_mass.y][next_mass.x] == 0
-					#puts ("  " * (depth+1)) + "->yes!!" if $DEBUG
 					movable = true if move_foward(next_mass, mass2, passed_path, depth+=1)
 				end
-				
 				return movable if movable
 			end
 			return movable
@@ -161,7 +172,6 @@ class Map
 	end
 	def define_passed_path(current_mass) # 通行マップを定義する
 		passed_path = Array.new(@height){ Array.new(@width){0} }
-		# Array.new(7){ Array.new(7){0} }
 		# Array#newには注意 http://doc.okkez.net/static/192/class/Array.html
 		unpassable = [:block, :tower] # 通行不可能
 		y = -1
