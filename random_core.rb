@@ -5,23 +5,39 @@ TOWER_TYPE_NUM = TOWER_TYPE.invert # 出力用
 COST_OF_SETTING = {:rapid=>10, :attack=>15, :freeze=>20} # 設置費用
 MASS_TYPE = {'0'=>:path, '1'=>:block, 's'=>:source, 'g'=>:goal, 't'=>:tower}
 MASS_TYPE_CHAR = MASS_TYPE.invert
+SETTABLE_MASS = [:path]
 
 # クラス
 
 class Map
-	attr_reader :width, :height, :info, :num_levels, :idx # 何面か
+	attr_reader :width, :height, :info, :info_settable, :num_levels, :idx # 何面か
 	def initialize(width, height, info, num_levels, idx)
 		@width, @height, @idx = width, height, idx+1
 		@num_levels = num_levels
 		y = -1
-		@info = info.map do |row| # Mass オブジェクトを埋め込む
+		@info = info.map do |row| # マップ情報を Mass オブジェクトで記録する
 			y += 1
-			x = -1 # 注意！
+			x = -1 # 初期化
 			row.map do |mass_type|
 				x += 1
 				mass = Mass.new(x, y, mass_type, self)
 			end
 		end
+		@info_settable = [] # タワー配置可能マスを1、それ以外を0で埋めた二次元配列
+		y = -1
+		@info_settable = @info.map do |row|
+			y += 1
+			x = -1 # 初期化
+			row.map do |mass|
+				x += 1
+				if SETTABLE_MASS.include?(mass.type) # さらに敵→ゴール通過判定が必要
+					1
+				else
+					0
+				end
+			end
+		end
+		
 	end
 	def settable_masses()
 		settable_masses = []
@@ -46,10 +62,18 @@ class Map
 		end
 		return nil
 	end
-	def show()
+	def show_info()
 		@info.each do |row|
 			row.each do |mass|
 				print mass.type_char
+			end
+			puts ""
+		end
+	end
+	def show_info_settable()
+		@info_settable.each do |row|
+			row.each do |mass|
+				print mass
 			end
 			puts ""
 		end
@@ -180,8 +204,7 @@ class Mass
 		settable = true
 
 		default_type = @type
-		settable_mass = [:path]
-		return false unless settable_mass.include?(@type)
+		return false unless SETTABLE_MASS.include?(@type)
 		# todo: 金の判定
 		
 		@type = :tower # 仮にタワーを設置する
