@@ -6,6 +6,8 @@ COST_OF_SETTING = {:rapid=>10, :attack=>15, :freeze=>20} # 設置費用
 MASS_TYPE = {'0'=>:path, '1'=>:block, 's'=>:source, 'g'=>:goal, 't'=>:tower}
 MASS_TYPE_CHAR = MASS_TYPE.invert
 SETTABLE_MASSES = [:path]
+UNPASSABLE_MASSES = [:block, :tower]
+PASSABLE_MASSES = [:path, :source, :goal]
 
 # クラス
 
@@ -32,14 +34,14 @@ class Map
 		end
 		
 	end
-	def settable_masses_quick() # 通過判定をおこなわない
-		settable_masses_quick = []
+	def settable_masses_maybe() # 通過判定をおこなわない
+		settable_masses_maybe = []
 		@info.each do |row|
 			row.each do |mass|
-				settable_masses_quick << mass if mass.settable_quick?
+				settable_masses_maybe << mass if mass.settable_maybe?
 			end
 		end
-		return settable_masses_quick
+		return settable_masses_maybe
 	end
 	def settable_masses() # タワーを配置可能なマス
 		settable_masses = []
@@ -51,8 +53,8 @@ class Map
 		return settable_masses
 	end
 	def settable_mass_rand()
-		while settable_masses_quick().size > 0
-			sample_mass = settable_masses_quick().sample
+		while settable_masses_maybe().size > 0
+			sample_mass = settable_masses_maybe().sample
 			if sample_mass.settable?
 				return sample_mass
 			else
@@ -151,7 +153,7 @@ class Map
 		end
 		return result
 	end
-	def move_foward(mass1, mass2, passed_path=nil, depth=0) # mass1 から mass2 への移動を試みる
+	def move_foward(mass1, mass2, passed_path=nil, depth=0) # mass1 から mass2 への移動を試みる。再帰で探索しまくる
 		passed_path ||= define_passed_path(mass1) # 通行マップ：通ってはいけないマスを1、通れるマスを0とする
 		return false if passed_path[mass1.y][mass1.x] == 1 # 壁に埋まってるとき
 		passed_path[mass1.y][mass1.x] = 1 # 同じ場所には戻れない
@@ -159,7 +161,6 @@ class Map
 		if mass1 == mass2
 			return true
 		else
-			
 			directions(mass1, mass2).each do |direction|
 				next_mass = mass1.send(direction)
 				if passed_path[next_mass.y][next_mass.x] == 0
@@ -173,14 +174,13 @@ class Map
 	def define_passed_path(current_mass) # 通行マップを定義する
 		passed_path = Array.new(@height){ Array.new(@width){0} }
 		# Array#newには注意 http://doc.okkez.net/static/192/class/Array.html
-		unpassable = [:block, :tower] # 通行不可能
 		y = -1
 		passed_path.each do |row|
 			y += 1
 			x = -1
 			row.each do |mass|
 				x += 1
-				passed_path[y][x] = 1 if unpassable.include?(mass(x, y).type)
+				passed_path[y][x] = 1 if UNPASSABLE_MASSES.include?(mass(x, y).type)
 			end
 		end
 
@@ -218,14 +218,61 @@ class Mass
 			return nil
 		end
 	end
-	def settable_quick?() # 通過判定をおこなわない
+	def passable?()
+		PASSABLE_MASSES.include?(@type)
+	end
+	def unpassable?()
+		UNPASSABLE_MASSES.include?(@type)
+	end
+	def settable_maybe?() # 通過判定をおこなわない
 		{1=>true, 0=>false}[@map.info_settable[@y][@x]]
+	end
+	def settable_ptn?() # 通過判定に影響しない（確実にセットできる）か
+		masses_around = [up, up.right, right, right.down, down, down.left, left, left.up]
+		masses_neighbor = [up, down, right, left]
+
+		# 絶対に道をふさがない簡単なパターン
+		around_zero_or_one_blocked_ptn =
+			(masses_around.count {|mass| mass.unpassable? } <= 1)
+		neighbor_three_or_four_blocked_ptn =
+			(masses_neighbor.count {|mass| mass.unpassable? } >= 3)
+		return true if around_zero_or_one_blocked_ptn || neighbor_three_or_four_blocked_ptn
+
+		return false # ふさぐパターンが不完全だ……。
+		
+		masses_top = [up.left, up, up.right]
+		masses_right = [right.up, right, right.down]
+		masses_bottom = [down.right, down, down.left]
+		masses_left = [left.down, left, left.up]
+		edges = [masses_top, masses_right, masses_bottom, masses_left]
+		keima_lines = [
+			masses_top << right, masses_top.reverse << left,
+			masses_right << down, masses_right.reverse << up,
+			masses_bottom << left, masses_bottom.reverse << right,
+			masses_left << up, masses_left.reverse << down
+		] # 桂馬の飛び越えマスを埋めるパターンを判定するのに必要な4マス
+		
+		# 道をふさぐ2個パターン
+		on_line_ptn = (up.unpassable? && down.unpassable?) ||
+			(right.unpassable? && left.unpassable?)
+		on_diagonal_line_ptn = (up.right.unpassable? && down.left.unpassable?) ||
+			(up.left.unpassable? && down.right.unpassable?) # 斜め
+		edge_closing_ptn = edges.any? do |edge|
+			edge[0].unpassable? && edge[1].passable? && edge[2].unpassable?
+		end # 辺の切れ目を埋めるパターン
+		keima_closing_ptn = keima_lines.any? do |line|
+			line[0].unpassable? && line[1].passable? && line[3].unpassable?
+		end
+		return false if on_line_ptn || on_diagonal_line_ptn || edge_closing_ptn || keima_closing_ptn
+
+		return true
 	end
 	def settable?() # タワーを設置可能か
 		settable = true
 
 		default_type = @type
-		return false unless settable_quick? # :path ではない
+		return false unless settable_maybe? # :path ではない
+		return true if settable_ptn? # 通過判定を必要としない
 		# todo: 金の判定→mainでやるか？ Level じゃなくて Map に @money もたせるか。
 		
 		@type = :tower # 仮にタワーを設置する
