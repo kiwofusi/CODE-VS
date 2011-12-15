@@ -64,6 +64,18 @@ class Map
 		end
 		return nil
 	end
+	def settable_mass_rand_quick() # 通過判定パターンで判断する
+		while settable_masses_maybe().size > 0
+			sample_mass = settable_masses_maybe().sample
+			if sample_mass.settable?
+				return sample_mass
+			else
+				x, y = sample_mass.x, sample_mass.y
+				sample_mass.map.info_settable[y][x] = 0
+			end
+		end
+		return nil
+	end
 	def show_info()
 		@info.each do |row|
 			row.each do |mass|
@@ -238,8 +250,6 @@ class Mass
 		neighbor_three_or_four_blocked_ptn =
 			(masses_neighbor.count {|mass| mass.unpassable? } >= 3)
 		return true if around_zero_or_one_blocked_ptn || neighbor_three_or_four_blocked_ptn
-
-		#return false # ふさぐパターンが不完全だ……。
 		
 		masses_top = [up.left, up, up.right]
 		masses_right = [right.up, right, right.down]
@@ -247,10 +257,10 @@ class Mass
 		masses_left = [left.down, left, left.up]
 		edges = [masses_top, masses_right, masses_bottom, masses_left]
 		keima_lines = [ # << すると書き換わるからあかんよ！
-			masses_top + right.to_a, masses_top.reverse + left.to_a,
-			masses_right + down.to_a, masses_right.reverse + up.to_a,
-			masses_bottom + left.to_a, masses_bottom.reverse + right.to_a,
-			masses_left + up.to_a, masses_left.reverse + down.to_a
+			masses_top + [right], masses_top.reverse + [left],
+			masses_right + [down], masses_right.reverse + [up],
+			masses_bottom + [left], masses_bottom.reverse + [right],
+			masses_left + [up], masses_left.reverse + [down]
 		] # 桂馬の飛び越えマスを埋めるパターンを判定するのに必要な4マス
 		
 		# 道をふさぐ2個パターン
@@ -269,33 +279,21 @@ class Mass
 		return true
 	end
 	def settable?() # タワーを設置可能か
-		settable = true
-
-		type_default = @type
-		return false unless settable_maybe? # :path ではない
+		return false unless settable_maybe? # 通路ではない
 		return true if settable_ptn? # 通過判定を必要としない
 		# todo: 金の判定→mainでやるか？ Level じゃなくて Map に @money もたせるか。
-		
-		@type = :tower # 仮にタワーを設置する
 
-		settable = true # すべての敵マスについて、防衛マスへのルートがあること
-		@map.sources.each do |source|
-			has_route = false
-			@map.goals.sort do |a, b|
-				@map.distance_euclid(source, a) <=> @map.distance_euclid(source, a)
-			end.each do |goal| # 防衛マスへのルートが少なくともひとつあること
-				if @map.has_route?(source, goal)
-					has_route = true
-					break
-				end
-			end
-			unless has_route
-				settable = false
-				@map.info_settable[@y][@x] = 0
+		type_default = @type
+		@type = :tower # 仮にタワーを設置する
+		settable = @map.sources.all? do |source| # すべての敵マスについて、防衛マスへのルートがあること
+			has_route = @map.goals.sort do |g1, g2|
+				@map.distance_euclid(source, g1) <=> @map.distance_euclid(source, g2)
+			end.any? do |goal| # 防衛マスへのルートが少なくともひとつあること
+				@map.has_route?(source, goal)
 			end
 		end
-		
-		@type = type_default # 元に戻す todo: remove にする？
+		@map.info_settable[@y][@x] = 0 unless settable
+		@type = type_default # 元に戻す todo: set & remove にする？
 
 		return settable
 	end
