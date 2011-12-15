@@ -56,6 +56,7 @@ num_maps.times do |map_idx|
 		decision(map, level) # タワーを配置する
 		level.output # 判断を出力する
 		if $DEBUG
+			map.show_info
 			map.show_info_settable
 		end
 	end

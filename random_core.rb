@@ -5,7 +5,7 @@ TOWER_TYPE_NUM = TOWER_TYPE.invert # 出力用
 COST_OF_SETTING = {:rapid=>10, :attack=>15, :freeze=>20} # 設置費用
 MASS_TYPE = {'0'=>:path, '1'=>:block, 's'=>:source, 'g'=>:goal, 't'=>:tower}
 MASS_TYPE_CHAR = MASS_TYPE.invert
-SETTABLE_MASS = [:path]
+SETTABLE_MASSES = [:path]
 
 # クラス
 
@@ -24,22 +24,24 @@ class Map
 			end
 		end
 		@info_settable = [] # タワー配置可能マスを1、それ以外を0で埋めた二次元配列
-		y = -1
 		@info_settable = @info.map do |row|
-			y += 1
-			x = -1 # 初期化
 			row.map do |mass|
-				x += 1
-				if SETTABLE_MASS.include?(mass.type) # さらに敵→ゴール通過判定が必要
-					1
-				else
-					0
-				end
+				{true=>1, false=>0}[SETTABLE_MASSES.include?(mass.type)]
+				# さらに敵→ゴール通過判定が必要。これは随時おこなう
 			end
 		end
 		
 	end
-	def settable_masses()
+	def settable_masses_quick() # 通過判定をおこなわない
+		settable_masses_quick = []
+		@info.each do |row|
+			row.each do |mass|
+				settable_masses_quick << mass if mass.settable_quick?
+			end
+		end
+		return settable_masses_quick
+	end
+	def settable_masses() # タワーを配置可能なマス
 		settable_masses = []
 		@info.each do |row|
 			row.each do |mass|
@@ -49,16 +51,14 @@ class Map
 		return settable_masses
 	end
 	def settable_mass_rand()
-		max = 100
-		i = 0
-		while i < max
-			sample = @info.sample.sample
-			if sample.type == :path
-				if sample.settable?
-					return sample
-				end
+		while settable_masses_quick().size > 0
+			sample_mass = settable_masses_quick().sample
+			if sample_mass.settable?
+				return sample_mass
+			else
+				x, y = sample_mass.x, sample_mass.y
+				sample_mass.map.info_settable[y][x] = 0
 			end
-			i += 1
 		end
 		return nil
 	end
@@ -91,12 +91,9 @@ class Map
 		# 上下左右いずれかの :path を通って mass2 に到達できること
 		return move_foward(mass1, mass2)
 	end
-	def distance(mass1, mass2, type="step") # 二点間の距離
-		if type == "step" # ユニットの移動距離
-		
-		else # ユークリッド距離
-		
-		end
+	def distance_euclid(mass1, mass2) # 二点間のユークリッド距離
+	end
+	def distance_step(mass1, mass2) # 二点間の敵の通行距離
 	end
 
 	private
@@ -182,7 +179,6 @@ class Mass
 		@tower = nil
 		@map = map
 	end
-	
 	def up; @map.mass(@x, @y-1); end
 	def down; @map.mass(@x, @y+1); end
 	def right; @map.mass(@x+1, @y); end
@@ -195,17 +191,21 @@ class Mass
 			@tower = Tower.new(tower_type)
 			@type = :tower
 			@type_char = MASS_TYPE_CHAR[@type]
+			@map.info_settable[y][x] = 0
 			return "#{@x} #{@y} 0 #{@tower.type_num}"
 		else
 			return nil
 		end
 	end
+	def settable_quick?() # 通過判定をおこなわない
+		{1=>true, 0=>false}[@map.info_settable[@y][@x]]
+	end
 	def settable?() # タワーを設置可能か
 		settable = true
 
 		default_type = @type
-		return false unless SETTABLE_MASS.include?(@type)
-		# todo: 金の判定
+		return false unless settable_quick? # :path ではない
+		# todo: 金の判定→mainでやるか？ Level じゃなくて Map に @money もたせるか。
 		
 		@type = :tower # 仮にタワーを設置する
 
@@ -215,7 +215,10 @@ class Mass
 			@map.goals.each do |goal| # 防衛マスへのルートが少なくともひとつあること
 				has_route = true if @map.has_route?(source, goal)
 			end
-			settable = false unless has_route
+			unless has_route
+				settable = false
+				@map.info_settable[@y][@x] = 0
+			end
 		end
 		
 		@type = default_type # 元に戻す todo: remove にする？
