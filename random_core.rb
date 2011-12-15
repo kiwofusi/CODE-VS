@@ -106,7 +106,7 @@ class Map
 			return :down
 		end
 	end
-	def directions(mass1, mass2) # mass1 から mass2 への方向リスト（近い順）
+	def directions(mass1, mass2) # mass1 から mass2 への方向（近い順）
 		x_diff = mass2.x - mass1.x # 正なら右
 		y_diff = mass2.y - mass1.y # 正なら上
 		if (x_diff.abs - y_diff.abs) >= 0 # 左右を優先
@@ -159,8 +159,8 @@ class Map
 		if mass1 == mass2
 			return true
 		else
-			move_directions = [:up, :down, :left, :right]
-			move_directions.each do |direction|
+			
+			directions(mass1, mass2).each do |direction|
 				next_mass = mass1.send(direction)
 				if passed_path[next_mass.y][next_mass.x] == 0
 					movable = true if move_foward(next_mass, mass2, passed_path, depth+=1)
