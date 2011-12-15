@@ -9,9 +9,10 @@ MASS_TYPE_CHAR = MASS_TYPE.invert
 # クラス
 
 class Map
-	attr_reader :width, :height, :info
-	def initialize(width, height, info)
-		@width, @height = width, height
+	attr_reader :width, :height, :info, :num_levels, :idx # 何面か
+	def initialize(width, height, info, num_levels, idx)
+		@width, @height, @idx = width, height, idx+1
+		@num_levels = num_levels
 		y = -1
 		@info = info.map do |row| # Mass オブジェクトを埋め込む
 			y += 1
@@ -219,12 +220,18 @@ class Tower
 end
 
 class Level
-	attr_reader :life, :money, :towers_num, :enemies_num
-	attr_accessor :enemies, :decisions
-	def initialize(input)
-		@life, @money, @towers_num, @enemies_num = input.split(/ /).map{|i| i.to_i}
+	attr_reader :life, :num_towers, :num_enemies, :idx # レベル何か
+	attr_accessor :enemies, :decisions, :money
+	def initialize(input, idx)
+		@life, @money, @num_towers, @num_enemies = input.split(/ /).map{|i| i.to_i}
+		@idx = idx+1
 		@enemies = []
 		@decisions = []
+	end
+	def output()
+		@decisions.compact!
+		puts @decisions.size
+		@decisions.each {|d| puts d }
 	end
 end
 class Enemy

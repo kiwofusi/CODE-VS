@@ -1,184 +1,84 @@
 require 'random_core.rb'
 
-# main
+# いろいろ
 
-FILE = File.open("buf.txt", "w")
+LOG = File.open("log.txt", "w")
 alias puts_o puts; def puts(s) # flushしないとクライアントが動かない
 	puts_o s.to_s
 	STDOUT.flush # cf. http://atomic.jpn.ph/prog/io/print.html
 end
-def rl() # read line 改行を削る
+unless Array.new.methods.include?("sample"); class Array; def sample; choice(); end; end; end # Array#sample を実装する。Ruby1.8用
+
+# main用関数
+
+def rl() # read line 改行は削る
 	STDIN.gets.chop # cf. http://vipprog.net/wiki/%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%9F%E3%83%B3%E3%82%B0%E8%A8%80%E8%AA%9E/Ruby/Ruby%E3%81%9D%E3%81%9E%E3%82%8D%E6%AD%A9%E3%81%8D.html
 end
-unless Array.new.methods.include?("sample") # Ruby1.8対策
-	class Array
-		def sample
-			choice()
-		end
-	end
-end
-
-def read_map() # マップを読み込む
+def read_map(idx) # マップを読み込む
 	width, height = rl.split(/ /).map{|i| i.to_i}
 	map_info = [] # マップ情報の二次元配列
 	height.times do
-		map_info << rl.split(//) # 行
+		map_info << rl.split(//) # マップ1行分
 	end
-	map = Map.new(width, height, map_info)
-	levels_num = rl.to_i
-	rl # "END"
-	return map, levels_num
+	num_levels = rl.to_i # このマップの全レベル数
+	return Map.new(width, height, map_info, num_levels, idx)
+end
+def decision_random(map, level) # ランダムにタワーを配置する
+	sample_mass = 1 # ダミー
+	while sample_mass && level.money >= 20
+		sample_mass = map.settable_mass_rand
+		if sample_mass
+			level.decisions << sample_mass.set(:attack)
+			level.money -= 15
+		end
+	end
+	return level
+end
+def decision(map, level) # タワーを配置する
+	decision_random(map, level)
 end
 
-maps_num = rl.to_i # S
-map_idx = 0
-maps_num.times do
-	map_idx += 1
-	map, levels_num = read_map()
-	if $DEBUG
+# main
 
-		map.show
-		mass = map.mass(1,2)
-		puts mass == mass.up.right.down.send(:left)
-		map.goals.each {|goal| puts goal.to_s }
-		from = map.mass(1,2)
-		to = map.mass(2,5)
-		#puts "from #{from.to_s} to #{to.to_s}", map.has_route?(from, to)
-		#puts "settable?"
-		#puts map.mass(1,1).settable?
-
-		#puts "has route?"
-# 		map.mass(5,2).set(:attack)
-# 		map.mass(4,3).set(:attack)
-# 		map.mass(4,3).set(:attack)
-# 		map.mass(5,4).set(:attack)
-		puts "setable_masses"
-		map.mass(1,1).set(:attack)
-		map.mass(2,3).set(:attack)
-		map.mass(2,4).set(:attack)
-		map.mass(3,2).set(:attack)
-		map.mass(3,5).set(:attack)
-		map.mass(4,3).set(:attack)
-		map.mass(4,4).set(:attack)
-		map.mass(4,5).set(:attack)
-		map.mass(5,1).set(:attack)
-		puts map.mass(2,1).settable?
-		
-		map.show
-
-	end
-	levels_num.times do
-		level = Level.new(rl)
-		level.towers_num.times do
+num_maps = rl.to_i # S
+num_maps.times do |map_idx|
+	map = read_map(map_idx) # マップ読み込み
+	rl # "END"
+	map.num_levels.times do |level_idx|
+		level = Level.new(rl, level_idx) # レベル情報受け取り
+		level.num_towers.times do # タワー情報受け取り
 			rl # 何もしない
 		end
-		level.enemies_num.times do
-			level.enemies << Enemy.new(rl) # 敵情報
+		level.num_enemies.times do # 敵情報受け取り
+			level.enemies << Enemy.new(rl)
 		end
-		# タワーを配置する
-		if map_idx < 100 # 中止用
-		money = level.money
-		sample = 1
-		while sample && money >= 20
-			sample = map.settable_mass_rand
-			if sample
-				level.decisions << sample.set(:attack)
-				money -= 15
-			end
-		end
-		end
-		rl #if rl == "END" # 結果を出力する
-			level.decisions.compact!
-			puts level.decisions.size
-			level.decisions.each {|d| puts d }
-		#end
+		rl # "END"
+		decision(map, level) # タワーを配置する
+		level.output # 判断を出力する
 	end
 end
 
-
-=begin サンプル
-
-# タワーを配置する
-map.mass(x, y).set(:attack)
-
-# タワーを強化する
-map.mass(x, y).levelup()
-
-# タワーを破棄する
-map.mass(x, y).remove()
-
-=end
-
-=begin 出力
+=begin 出力フォーマット
 判断の数 T
-x, y, 強化する回数 A_t, 種類 C_i
-
-▼出力
-6
-4 4 0 1
-2 5 0 1
-2 3 0 1
-5 5 0 1
-3 3 0 1
-2 4 0 1
-0
-0
-
-
-▼入力
-40
-7 7
-1111111
-1000001
-1s00001
-1s000g1
-1s00001
-1000001
-1111111
-25
-END
-10 100 0 1
-1 4 12 44 40
-END
-10 14 6 3
-4 4 0 、1
-1 4 1 54 116
-1 4 10 82 68
-1 3 16 77 82
-END
-10 31 6 4
-4 4 0 1
-2 5 0 1
-2 3 0 1
-5 5 0 1
-3 3 0 1
-2 4 0 1
-1 2 3 96 31
-1 4 21 41 115
-1 2 6 70 118
-1 3 16 90 104
-END
-
-
-
+x, y, 強化する回数 A_t, 種類 C_i（3:破壊）
 =end
 
 =begin 入力例
 40 # マップの数 S
 7 7 # マップの広さ (W, H)
-1111111 # マス 左上から F_1,1 = F_i+1,j+1
-1000001 # F_2,1
+1111111 # マス 左上から F_1,1
+1000001
 1s00001
 1s000g1
 1s00001
 1000001
-1111111 # 右下 F_W,H
+1111111
 25 # レベルの数 L
 END
 10 100 0 1 # ライフ L_p, 資金 M, タワーの数 T, 敵の数 E
 # T行 タワー情報
-# 座標 X_i, Y_i, 強化回数 A_t, 種類 C_t(0:ラピッド,1:アタック,2:フリーズ)
+	# 座標 X_i, Y_i, 強化回数 A_t, 種類 C_t(0:ラピッド,1:アタック,2:フリーズ)
 # E行 敵情報
-1 4 12 44 40 # 座標 X_e, Y_e, 出現時刻 T_e, ライフ L_e, 移動時間 S_e
+	1 4 12 44 40 # 座標 X_e, Y_e, 出現時刻 T_e, ライフ L_e, 移動時間 S_e
 END
 =end
