@@ -99,17 +99,11 @@ class Map
 		x_diff = mass2.x - mass1.x # 正なら右
 		y_diff = mass2.y - mass1.y # 正なら上
 		if (x_diff.abs - y_diff.abs) >= 0 # 左右を優先
-			if x_diff >= 0
-				:right
-			else
-				:left
-			end
+			return :right if x_diff >= 0
+			return :left
 		else # 上下を優先
-			if y_diff >= 0
-				:up
-			else
-				:down
-			end
+			return :up if y_diff >= 0
+			return :down
 		end
 	end
 
