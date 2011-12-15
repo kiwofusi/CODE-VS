@@ -23,6 +23,17 @@ def read_map(idx) # マップを読み込む
 	num_levels = rl.to_i # このマップの全レベル数
 	return Map.new(width, height, map_info, num_levels, idx)
 end
+def decision_random_quick(map, level) # ランダムにタワーを配置する
+	sample_mass = 1 # ダミー
+	while sample_mass && level.money >= 20
+		sample_mass = map.settable_mass_rand_quick
+		if sample_mass
+			level.decisions << sample_mass.set(:attack)
+			level.money -= 15
+		end
+	end
+	return level
+end
 def decision_random(map, level) # ランダムにタワーを配置する
 	sample_mass = 1 # ダミー
 	while sample_mass && level.money >= 20
@@ -35,7 +46,12 @@ def decision_random(map, level) # ランダムにタワーを配置する
 	return level
 end
 def decision(map, level) # タワーを配置する
-	decision_random(map, level)
+	if map.idx < 10 || level.idx > 10
+		decision_random(map, level)
+	else
+		decision_random_quick(map, level)
+		map.reset_info_settable
+	end
 end
 
 # main

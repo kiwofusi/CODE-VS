@@ -1,4 +1,6 @@
 CODE VSやってみた。
 
-sample.rb 何もしないソルバー。Sample.javaのRuby版。
-random.rb ランダムにタワーを配置するソルバー。
+random_main.rb
+ランダムにタワーを配置します。強化は未実装。
+運がいいと20面くらいまでいってタイムアップ。だいたい2面で死ぬ。
+クラスは random_core.rb 

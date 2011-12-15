@@ -32,7 +32,14 @@ class Map
 				# さらに敵→ゴール通過判定が必要。これは随時おこなう
 			end
 		end
-		
+	end
+	def reset_info_settable()
+		@info_settable = @info.map do |row|
+			row.map do |mass|
+				{true=>1, false=>0}[SETTABLE_MASSES.include?(mass.type)]
+				# さらに敵→ゴール通過判定が必要。これは随時おこなう
+			end
+		end
 	end
 	def settable_masses_maybe() # 通過判定をおこなわない
 		settable_masses_maybe = []
@@ -67,7 +74,7 @@ class Map
 	def settable_mass_rand_quick() # 通過判定パターンで判断する
 		while settable_masses_maybe().size > 0
 			sample_mass = settable_masses_maybe().sample
-			if sample_mass.settable?
+			if sample_mass.settable_ptn?
 				return sample_mass
 			else
 				x, y = sample_mass.x, sample_mass.y
