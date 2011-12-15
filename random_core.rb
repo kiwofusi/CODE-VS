@@ -94,6 +94,7 @@ class Map
 		return move_foward(mass1, mass2)
 	end
 	def distance_euclid(mass1, mass2) # 二点間のユークリッド距離
+		Math.sqrt( (mass1.x - mass2.x)**2 + (mass1.y - mass2.y)**2 )
 	end
 	def distance_step(mass1, mass2) # 二点間の敵の通行距離
 	end
