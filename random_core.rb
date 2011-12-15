@@ -239,18 +239,18 @@ class Mass
 			(masses_neighbor.count {|mass| mass.unpassable? } >= 3)
 		return true if around_zero_or_one_blocked_ptn || neighbor_three_or_four_blocked_ptn
 
-		return false # ふさぐパターンが不完全だ……。
+		#return false # ふさぐパターンが不完全だ……。
 		
 		masses_top = [up.left, up, up.right]
 		masses_right = [right.up, right, right.down]
 		masses_bottom = [down.right, down, down.left]
 		masses_left = [left.down, left, left.up]
 		edges = [masses_top, masses_right, masses_bottom, masses_left]
-		keima_lines = [
-			masses_top << right, masses_top.reverse << left,
-			masses_right << down, masses_right.reverse << up,
-			masses_bottom << left, masses_bottom.reverse << right,
-			masses_left << up, masses_left.reverse << down
+		keima_lines = [ # << すると書き換わるからあかんよ！
+			masses_top + right.to_a, masses_top.reverse + left.to_a,
+			masses_right + down.to_a, masses_right.reverse + up.to_a,
+			masses_bottom + left.to_a, masses_bottom.reverse + right.to_a,
+			masses_left + up.to_a, masses_left.reverse + down.to_a
 		] # 桂馬の飛び越えマスを埋めるパターンを判定するのに必要な4マス
 		
 		# 道をふさぐ2個パターン
@@ -263,7 +263,7 @@ class Mass
 		end # 辺の切れ目を埋めるパターン
 		keima_closing_ptn = keima_lines.any? do |line|
 			line[0].unpassable? && line[1].passable? && line[3].unpassable?
-		end
+		end # 桂馬の飛び越えマスを埋めるパターン
 		return false if on_line_ptn || on_diagonal_line_ptn || edge_closing_ptn || keima_closing_ptn
 
 		return true

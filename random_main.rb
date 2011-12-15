@@ -58,6 +58,7 @@ num_maps.times do |map_idx|
 		if $DEBUG
 			map.show_info
 			map.show_info_settable
+
 		end
 	end
 end
