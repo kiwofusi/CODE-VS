@@ -46,12 +46,12 @@ def decision_random(map, level) # ランダムにタワーを配置する
 	return level
 end
 def decision(map, level) # タワーを配置する
-	if map.idx < 10 || level.idx > 10
+	#if map.idx < 10 || level.idx > 10
 		decision_random(map, level)
-	else
-		decision_random_quick(map, level)
-		map.reset_info_settable
-	end
+	#else
+	#	decision_random_quick(map, level)
+	#	map.reset_info_settable
+	#end
 end
 
 # main
