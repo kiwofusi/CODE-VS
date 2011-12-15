@@ -271,7 +271,7 @@ class Mass
 	def settable?() # タワーを設置可能か
 		settable = true
 
-		default_type = @type
+		type_default = @type
 		return false unless settable_maybe? # :path ではない
 		return true if settable_ptn? # 通過判定を必要としない
 		# todo: 金の判定→mainでやるか？ Level じゃなくて Map に @money もたせるか。
@@ -281,8 +281,13 @@ class Mass
 		settable = true # すべての敵マスについて、防衛マスへのルートがあること
 		@map.sources.each do |source|
 			has_route = false
-			@map.goals.each do |goal| # 防衛マスへのルートが少なくともひとつあること
-				has_route = true if @map.has_route?(source, goal)
+			@map.goals.sort do |a, b|
+				@map.distance_euclid(source, a) <=> @map.distance_euclid(source, a)
+			end.each do |goal| # 防衛マスへのルートが少なくともひとつあること
+				if @map.has_route?(source, goal)
+					has_route = true
+					break
+				end
 			end
 			unless has_route
 				settable = false
@@ -290,7 +295,7 @@ class Mass
 			end
 		end
 		
-		@type = default_type # 元に戻す todo: remove にする？
+		@type = type_default # 元に戻す todo: remove にする？
 
 		return settable
 	end
