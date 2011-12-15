@@ -311,7 +311,7 @@ maps_num.times do
 			level.enemies << Enemy.new(rl) # 敵情報
 		end
 		# タワーを配置する
-		if map_idx < 10
+		if map_idx < 100 # 中止用
 		money = level.money
 		sample = 1
 		while sample && money >= 20
@@ -415,22 +415,5 @@ END
 # 座標 X_i, Y_i, 強化回数 A_t, 種類 C_t(0:ラピッド,1:アタック,2:フリーズ)
 # E行 敵情報
 1 4 12 44 40 # 座標 X_e, Y_e, 出現時刻 T_e, ライフ L_e, 移動時間 S_e
-END
-9 100 0 3
-1 4 1 54 116
-1 4 10 82 68
-1 3 16 77 82
-END
-6 100 0 4
-1 2 3 96 31
-1 4 21 41 115
-1 2 6 70 118
-1 3 16 90 104
-END
-2 100 0 4
-1 4 1 61 118
-1 4 14 150 82
-1 3 1 66 53
-1 4 17 109 54
 END
 =end
