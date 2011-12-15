@@ -14,24 +14,15 @@ PASSABLE_MASSES = [:path, :source, :goal]
 class Map
 	attr_reader :width, :height, :info, :info_settable, :num_levels, :idx # 何面か
 	def initialize(width, height, info, num_levels, idx)
-		@width, @height, @idx = width, height, idx+1
-		@num_levels = num_levels
-		y = -1
-		@info = info.map do |row| # マップ情報を Mass オブジェクトで記録する
-			y += 1
-			x = -1 # 初期化
-			row.map do |mass_type|
-				x += 1
-				mass = Mass.new(x, y, mass_type, self)
+		@width, @height, @idx, @num_levels = width, height, idx+1, num_levels
+		@info = Array.new(@height){ Array.new(@width){nil} }
+		info.each_with_index do |row, y| # マップ情報を Mass オブジェクトで記録する
+			row.each_with_index do |mass_type_char, x|
+				@info[y][x] = Mass.new(x, y, mass_type_char, self)
 			end
 		end
 		@info_settable = [] # タワー配置可能マスを1、それ以外を0で埋めた二次元配列
-		@info_settable = @info.map do |row|
-			row.map do |mass|
-				{true=>1, false=>0}[SETTABLE_MASSES.include?(mass.type)]
-				# さらに敵→ゴール通過判定が必要。これは随時おこなう
-			end
-		end
+		reset_info_settable()
 	end
 	def reset_info_settable()
 		@info_settable = @info.map do |row|
@@ -83,6 +74,8 @@ class Map
 		end
 		return nil
 	end
+
+	# デバッグ用
 	def show_info()
 		@info.each do |row|
 			row.each do |mass|
@@ -99,17 +92,18 @@ class Map
 			puts ""
 		end
 	end
+
+	# マスを返す
 	def mass(x, y)
 		@info[y][x] # 座標の順番に注意！
 	end
-	def sources() # 敵出現マス一覧
-		search(:source)
-	end
-	def goals() # 防衛マス一覧
-		search(:goal)
-	end	
+	def paths(); search(:path); end # 通路マス一覧
+	def towers(); search(:tower); end # タワー設置マス一覧
+	def sources(); search(:source); end # 敵出現マス一覧
+	def goals(); search(:goal); end # 防衛マス一覧
+	
 	def has_route?(mass1, mass2) # 二点が通行可能か
-		# 上下左右いずれかの :path を通って mass2 に到達できること
+		# 上下左右いずれかの通過可能マスを通って mass2 に到達できること
 		return move_foward(mass1, mass2)
 	end
 	def distance_euclid(mass1, mass2) # 二点間のユークリッド距離
@@ -133,31 +127,19 @@ class Map
 		y_diff = mass2.y - mass1.y # 正なら上
 		if (x_diff.abs - y_diff.abs) >= 0 # 左右を優先
 			if x_diff >= 0
-				if y_diff >= 0
-					return [:right, :up, :down, :left]
-				else
-					return [:right, :down, :up, :left]
-				end
+				return [:right, :up, :down, :left] if y_diff >= 0
+				return [:right, :down, :up, :left]
 			else
-				if y_diff >= 0
-					return [:left, :up, :down, :right]
-				else
-					return [:left, :down, :up, :right]
-				end
+				return [:left, :up, :down, :right] if y_diff >= 0
+				return [:left, :down, :up, :right]
 			end
 		else # 上下を優先
 			if y_diff >= 0
-				if x_diff >= 0
-					return [:up, :right, :left, :down]
-				else
-					return [:up, :left, :right, :down]
-				end
+				return [:up, :right, :left, :down] if x_diff >= 0
+				return [:up, :left, :right, :down]
 			else
-				if x_diff >= 0
-					return [:down, :right, :left, :up]
-				else
-					return [:down, :left, :right, :up]
-				end
+				return [:down, :right, :left, :up] if x_diff >= 0
+				return [:down, :left, :right, :up]
 			end
 		end
 	end
@@ -193,21 +175,14 @@ class Map
 	end
 	def define_passed_path(current_mass) # 通行マップを定義する
 		passed_path = Array.new(@height){ Array.new(@width){0} }
-		# Array#newには注意 http://doc.okkez.net/static/192/class/Array.html
-		y = -1
-		passed_path.each do |row|
-			y += 1
-			x = -1
-			row.each do |mass|
-				x += 1
-				passed_path[y][x] = 1 if UNPASSABLE_MASSES.include?(mass(x, y).type)
+		# Array#newには注意 cf. http://doc.okkez.net/static/192/class/Array.html
+		passed_path.each_with_index do |row, y|
+			row.each_with_index do |mass, x|
+				passed_path[y][x] = 1 if mass(x, y).unpassable?
 			end
 		end
-
 	end
 end
-
-
 
 class Mass
 	attr_reader :type_char, :tower, :x, :y
@@ -272,9 +247,9 @@ class Mass
 		
 		# 道をふさぐ2個パターン
 		on_line_ptn = (up.unpassable? && down.unpassable?) ||
-			(right.unpassable? && left.unpassable?)
+			(right.unpassable? && left.unpassable?) # 直線を埋める
 		on_diagonal_line_ptn = (up.right.unpassable? && down.left.unpassable?) ||
-			(up.left.unpassable? && down.right.unpassable?) # 斜め
+			(up.left.unpassable? && down.right.unpassable?) # 斜め直線を埋める
 		edge_closing_ptn = edges.any? do |edge|
 			edge[0].unpassable? && edge[1].passable? && edge[2].unpassable?
 		end # 辺の切れ目を埋めるパターン
@@ -292,17 +267,16 @@ class Mass
 
 		type_default = @type
 		@type = :tower # 仮にタワーを設置する
-		settable = @map.sources.all? do |source| # すべての敵マスについて、防衛マスへのルートがあること
-			has_route = @map.goals.sort do |g1, g2|
+		is_settable = @map.sources.all? do |source| # すべての敵マスについて、ゴールへのルートがあること
+			@map.goals.sort do |g1, g2| # この敵マスに近いゴールから順番に調べる
 				@map.distance_euclid(source, g1) <=> @map.distance_euclid(source, g2)
-			end.any? do |goal| # 防衛マスへのルートが少なくともひとつあること
+			end.any? do |goal| # ゴールへのルートが少なくともひとつあること
 				@map.has_route?(source, goal)
 			end
 		end
-		@map.info_settable[@y][@x] = 0 unless settable
+		@map.info_settable[@y][@x] = 0 unless is_settable
 		@type = type_default # 元に戻す todo: set & remove にする？
-
-		return settable
+		return is_settable
 	end
 	def remove()
 	end
@@ -310,6 +284,7 @@ class Mass
 		@tower.levelup()
 	end
 end
+
 class Tower
 	attr_reader :type, :type_num, :level
 	attr_reader :cost_of_levelup # 強化費用
@@ -339,10 +314,10 @@ class Level
 		@decisions.each {|d| puts d }
 	end
 end
+
 class Enemy
 	attr_reader :x, :y, :time, :life, :speed
 	def initialize(input)
 		@x, @y, @time, @life, @speed = input.split(/ /).map{|i| i.to_i}
 	end
 end
-
