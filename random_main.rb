@@ -1,4 +1,5 @@
 require 'random_core.rb'
+require 'date'
 
 # いろいろ
 
@@ -36,7 +37,8 @@ def decision_random_quick(map, level) # ランダムにタワーを配置する
 end
 def decision_random(map, level) # ランダムにタワーを配置する
 	sample_mass = 1 # ダミー
-	while sample_mass && level.money >= 20
+	i = 0; max = map.settable_masses_maybe.size / 2 # ふさがないパターンと交互にやりたい
+	while sample_mass && level.money >= 20 && (i+=1) < max
 		sample_mass = map.settable_mass_rand
 		if sample_mass
 			level.decisions << sample_mass.set(:attack)
