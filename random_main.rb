@@ -2,7 +2,7 @@ require 'random_core.rb'
 
 # いろいろ
 
-LOG = File.open("log.txt", "w")
+LOG = File.open("log#{DateTime.now.strftime('%Y%m%d%H%M%S')}.txt", "w")
 alias puts_o puts; def puts(s) # flushしないとクライアントが動かない
 	puts_o s.to_s
 	STDOUT.flush # cf. http://atomic.jpn.ph/prog/io/print.html
@@ -46,12 +46,14 @@ def decision_random(map, level) # ランダムにタワーを配置する
 	return level
 end
 def decision(map, level) # タワーを配置する
-	#if map.idx < 10 || level.idx > 10
+	require 'kconv'
+	if map.settable_masses_ptn.size > 0 # まずはふさがないパターンで配置する
+		puts "ふさがないパターン".tosjis if $DEBUG
+		decision_random_quick(map, level)
+	else # ふさがないパターンを埋め尽くしたら、通過チェックしながら配置する
+		puts "通過チェック配置".tosjis if $DEBUG
 		decision_random(map, level)
-	#else
-	#	decision_random_quick(map, level)
-	#	map.reset_info_settable
-	#end
+	end
 end
 
 # main
@@ -61,6 +63,17 @@ num_maps.times do |map_idx|
 	map = read_map(map_idx) # マップ読み込み
 	rl # "END"
 	map.num_levels.times do |level_idx|
+	
+		if $DEBUG
+			puts ""
+			map.show_info
+			puts "-" * map.width
+			map.show_info_settable
+			puts "-" * map.width
+			map.show_info_settable_ptn
+			puts ""
+		end
+		
 		level = Level.new(rl, level_idx) # レベル情報受け取り
 		level.num_towers.times do # タワー情報受け取り
 			rl # 何もしない
@@ -71,11 +84,6 @@ num_maps.times do |map_idx|
 		rl # "END"
 		decision(map, level) # タワーを配置する
 		level.output # 判断を出力する
-		if $DEBUG
-			map.show_info
-			map.show_info_settable
-
-		end
 	end
 end
 

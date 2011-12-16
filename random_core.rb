@@ -12,7 +12,8 @@ PASSABLE_MASSES = [:path, :source, :goal]
 # クラス
 
 class Map
-	attr_reader :width, :height, :info, :info_settable, :num_levels, :idx # 何面か
+	attr_reader :width, :height, :info, :num_levels, :idx # 何面か
+	attr_reader :info_settable, :info_settable_ptn # タワー設置可能情報
 	def initialize(width, height, info, num_levels, idx)
 		@width, @height, @idx, @num_levels = width, height, idx+1, num_levels
 		@info = Array.new(@height){ Array.new(@width){nil} }
@@ -23,12 +24,21 @@ class Map
 		end
 		@info_settable = [] # タワー配置可能マスを1、それ以外を0で埋めた二次元配列
 		reset_info_settable()
+		@info_settable_ptn = [] # ふさぎパターンは設置不可とする
+		reset_info_settable_ptn()
 	end
 	def reset_info_settable()
 		@info_settable = @info.map do |row|
 			row.map do |mass|
 				{true=>1, false=>0}[SETTABLE_MASSES.include?(mass.type)]
 				# さらに敵→ゴール通過判定が必要。これは随時おこなう
+			end
+		end
+	end
+	def reset_info_settable_ptn()
+		@info_settable_ptn = @info.map do |row|
+			row.map do |mass|
+				{true=>1, false=>0}[SETTABLE_MASSES.include?(mass.type)]
 			end
 		end
 	end
@@ -40,6 +50,19 @@ class Map
 			end
 		end
 		return settable_masses_maybe
+	end
+	def settable_masses_ptn() # 通過判定をおこなう必要がない
+		settable_masses_ptn = []
+		@info.each_with_index do |row, y|
+			row.each_with_index do |mass, x|
+				if mass.settable_ptn?
+					settable_masses_ptn << mass
+				else
+					@info_settable_ptn[y][x] = 0
+				end
+			end
+		end
+		return settable_masses_ptn
 	end
 	def settable_masses() # タワーを配置可能なマス
 		settable_masses = []
@@ -57,19 +80,19 @@ class Map
 				return sample_mass
 			else
 				x, y = sample_mass.x, sample_mass.y
-				sample_mass.map.info_settable[y][x] = 0
+				@info_settable[y][x] = 0
 			end
 		end
 		return nil
 	end
 	def settable_mass_rand_quick() # 通過判定パターンで判断する
-		while settable_masses_maybe().size > 0
-			sample_mass = settable_masses_maybe().sample
+		while settable_masses_ptn().size > 0
+			sample_mass = settable_masses_ptn().sample
 			if sample_mass.settable_ptn?
 				return sample_mass
 			else
 				x, y = sample_mass.x, sample_mass.y
-				sample_mass.map.info_settable[y][x] = 0
+				@info_settable_ptn[y][x] = 0
 			end
 		end
 		return nil
@@ -86,6 +109,14 @@ class Map
 	end
 	def show_info_settable()
 		@info_settable.each do |row|
+			row.each do |mass|
+				print mass
+			end
+			puts ""
+		end
+	end
+	def show_info_settable_ptn()
+		@info_settable_ptn.each do |row|
 			row.each do |mass|
 				print mass
 			end
@@ -146,7 +177,9 @@ class Map
 
 	private
 
-	def search(type) # マスを探す
+	def find_all_if() # 条件式を指定してマスを探す
+	end
+	def search(type) # タイプを指定してマスを探す
 		result = []
 		@info.each do |row| # find_all とかうまく使えないか？
 			row.each do |mass|
@@ -208,6 +241,7 @@ class Mass
 			@type = :tower
 			@type_char = MASS_TYPE_CHAR[@type]
 			@map.info_settable[y][x] = 0
+			@map.info_settable_ptn[y][x] = 0
 			return "#{@x} #{@y} 0 #{@tower.type_num}"
 		else
 			return nil
@@ -223,6 +257,7 @@ class Mass
 		{1=>true, 0=>false}[@map.info_settable[@y][@x]]
 	end
 	def settable_ptn?() # 通過判定に影響しない（確実にセットできる）か
+		return false unless settable_maybe?
 		masses_around = [up, up.right, right, right.down, down, down.left, left, left.up]
 		masses_neighbor = [up, down, right, left]
 
