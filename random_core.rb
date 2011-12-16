@@ -55,7 +55,7 @@ class Map
 		settable_masses_ptn = []
 		@info.each_with_index do |row, y|
 			row.each_with_index do |mass, x|
-				if mass.settable_ptn?
+				if @info_settable_ptn[y][x] == 1 && mass.settable_ptn?
 					settable_masses_ptn << mass
 				else
 					@info_settable_ptn[y][x] = 0
@@ -86,6 +86,7 @@ class Map
 		return nil
 	end
 	def settable_mass_rand_quick() # 通過判定パターンで判断する
+		# todo: settable_ptn? 要らない。短くする
 		while settable_masses_ptn().size > 0
 			sample_mass = settable_masses_ptn().sample
 			if sample_mass.settable_ptn?
@@ -234,7 +235,9 @@ class Mass
 	def left; @map.mass(@x-1, @y); end
 
 	def to_s; "#{@type}(#{x}, #{y})"; end
-	
+
+	def set_ignore(tower_type) # 通過チェックせずにタワーを設置する
+	end
 	def set(tower_type)
 		if settable?
 			@tower = Tower.new(tower_type)
@@ -258,6 +261,7 @@ class Mass
 	end
 	def settable_ptn?() # 通過判定に影響しない（確実にセットできる）か
 		return false unless settable_maybe?
+		
 		masses_around = [up, up.right, right, right.down, down, down.left, left, left.up]
 		masses_neighbor = [up, down, right, left]
 

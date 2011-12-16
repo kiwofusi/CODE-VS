@@ -3,7 +3,7 @@ require 'date'
 
 # いろいろ
 
-LOG = File.open("log#{DateTime.now.strftime('%Y%m%d%H%M%S')}.txt", "w")
+LOG_FILE_NAME = "log/log#{DateTime.now.strftime('%Y%m%d_%H%M%S')}.txt"
 alias puts_o puts; def puts(s) # flushしないとクライアントが動かない
 	puts_o s.to_s
 	STDOUT.flush # cf. http://atomic.jpn.ph/prog/io/print.html
@@ -37,8 +37,9 @@ def decision_random_quick(map, level) # ランダムにタワーを配置する
 end
 def decision_random(map, level) # ランダムにタワーを配置する
 	sample_mass = 1 # ダミー
-	i = 0; max = map.settable_masses_maybe.size / 2 # ふさがないパターンと交互にやりたい
-	while sample_mass && level.money >= 20 && (i+=1) < max
+	i = 0; max = map.settable_masses_maybe.size / 10 # ふさがないパターンと交互にやりたい
+	max = 10 if max < 10
+	while sample_mass && level.money >= 20 && (i+=1) < max # todo: なかで break
 		sample_mass = map.settable_mass_rand
 		if sample_mass
 			level.decisions << sample_mass.set(:attack)
@@ -49,12 +50,15 @@ def decision_random(map, level) # ランダムにタワーを配置する
 end
 def decision(map, level) # タワーを配置する
 	require 'kconv'
-	if map.settable_masses_ptn.size > 0 # まずはふさがないパターンで配置する
+	if map.idx < 4
+		decision_random(map, level)
+	elsif map.settable_masses_ptn.size > 0 # まずはふさがないパターンで配置する
 		puts "ふさがないパターン".tosjis if $DEBUG
 		decision_random_quick(map, level)
 	else # ふさがないパターンを埋め尽くしたら、通過チェックしながら配置する
 		puts "通過チェック配置".tosjis if $DEBUG
 		decision_random(map, level)
+		map.reset_info_settable_ptn
 	end
 end
 
@@ -63,6 +67,7 @@ end
 num_maps = rl.to_i # S
 num_maps.times do |map_idx|
 	map = read_map(map_idx) # マップ読み込み
+	File::open(LOG_FILE_NAME, "a") {|f| f.puts "\nmap#{map.idx}(#{map.width}, #{map.height})" }
 	rl # "END"
 	map.num_levels.times do |level_idx|
 	
@@ -75,7 +80,6 @@ num_maps.times do |map_idx|
 			map.show_info_settable_ptn
 			puts ""
 		end
-		
 		level = Level.new(rl, level_idx) # レベル情報受け取り
 		level.num_towers.times do # タワー情報受け取り
 			rl # 何もしない
@@ -85,6 +89,7 @@ num_maps.times do |map_idx|
 		end
 		rl # "END"
 		decision(map, level) # タワーを配置する
+		File::open(LOG_FILE_NAME, "a") {|f| f.puts "level#{level.idx}: T=#{level.num_towers} E=#{level.num_enemies} Life=#{level.life} Money=#{level.money} Decision=#{level.decisions.size}" }
 		level.output # 判断を出力する
 	end
 end
